@@ -2,6 +2,7 @@
 
 namespace app\models\search;
 
+use app\constants\HistoryEventConstant;
 use app\models\History;
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
@@ -27,15 +28,9 @@ class HistorySearch extends History
                 'department_ids',
                 'date_from',
                 'date_to',
-                'denyObjects'
+                'denyObjects',
             ], 'safe'],
         ];
-
-    }
-
-    public function behaviors()
-    {
-        return [];
     }
 
     /**
@@ -69,43 +64,76 @@ class HistorySearch extends History
      */
     public function search($params)
     {
-        $query = History::find();
-
-        // add conditions that should always apply here
-
+        $query = self::find();
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
-        ]);
-
-        $dataProvider->setSort([
-            'defaultOrder' => [
-                'ins_ts' => SORT_DESC,
-                'id' => SORT_DESC
+            'sort' => [
+                'defaultOrder' => [
+                    'ins_ts' => SORT_DESC,
+                    'id' => SORT_DESC,
+                ],
             ],
         ]);
 
         $this->load($params);
 
         if (!$this->validate()) {
-            // uncomment the following line if you do not want to return any records when validation fails
-            $query->where('0=1');
+            $query->emulateExecution();
+
             return $dataProvider;
         }
-        $query->addSelect('history.*');
-        $query->with([
-            'customer',
-            'user',
-            'sms',
-            'task',
-            'call',
-            'fax',
-        ]);
 
-        $query->andFilterWhere([
-            'history.customer_id' => $this->customer_id,
-            'history.user_id' => $this->user_id
-        ]);
+        $query
+            ->with([
+                'customer',
+                'user',
+                'sms',
+                'task',
+                'call',
+                'fax',
+            ])
+            ->andFilterWhere([
+                'history.event' => [
+                    HistoryEventConstant::TASK_CREATED,
+                    HistoryEventConstant::TASK_UPDATED,
+                    HistoryEventConstant::TASK_COMPLETED,
+
+                    HistoryEventConstant::SMS_INCOMING,
+                    HistoryEventConstant::SMS_OUTGOING,
+
+                    HistoryEventConstant::FAX_INCOMING,
+                    HistoryEventConstant::FAX_OUTGOING,
+                ],
+            ]);
 
         return $dataProvider;
+    }
+
+    public function eventText()
+    {
+        switch ($this->event) {
+            default:
+                $text = $this->eventText;
+                break;
+
+            case HistoryEventConstant::TASK_CREATED:
+            case HistoryEventConstant::TASK_UPDATED:
+            case HistoryEventConstant::TASK_COMPLETED:
+                $task = $this->task;
+                $text = $this->eventText . ': ';
+                if ($task !== null) {
+                    $text .= sprintf('(%s)', $task->title);
+                } else {
+                    $text .= \Yii::$app->formatter->nullDisplay;
+                }
+                break;
+
+            case HistoryEventConstant::SMS_INCOMING:
+            case HistoryEventConstant::SMS_OUTGOING:
+                $text = $this->sms->message;
+                break;
+        }
+
+        return $text;
     }
 }

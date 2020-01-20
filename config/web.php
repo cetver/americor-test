@@ -1,5 +1,7 @@
 <?php
 
+use kartik\export\ExportMenu;
+
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 
@@ -12,6 +14,9 @@ $config = [
         '@npm'   => '@vendor/npm-asset',
     ],
     'name' => 'Americor Test',
+    'container' => [
+        'singletons' => require __DIR__ . '/container/singletons.php',
+    ],
     'components' => [
         'request' => [
             // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
@@ -44,14 +49,19 @@ $config = [
             ],
         ],
         'db' => $db,
-        /*
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                '/' => 'site/index',
+                [
+                    'pattern' => '/<page:\d+>',
+                    'route' => 'site/index',
+                    'defaults' => ['page' => 1],
+                ],
+                'export/<exportType:' . ExportMenu::FORMAT_CSV . '>' => 'site/export',
             ],
         ],
-        */
     ],
     'modules' => [
         'gridview' => [

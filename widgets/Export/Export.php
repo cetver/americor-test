@@ -1,10 +1,7 @@
 <?php
 namespace app\widgets\Export;
 
-
-use backend\controllers\ReportsController;
 use kartik\export\ExportMenu;
-use yii\base\ActionEvent;
 
 class Export extends ExportMenu
 {
@@ -12,6 +9,7 @@ class Export extends ExportMenu
 
     public function init()
     {
+        // наверное это можно как-то улучшить, но лень копать родительский класс
         if (empty($this->options['id'])) {
             $this->options['id'] = $this->getId();
         }

@@ -1,25 +1,19 @@
 <?php
 
+use app\models\search\HistorySearch;
+use app\widgets\Export\Export;
+
 /**
  * @var $this yii\web\View
- * @var $model \app\models\History
  * @var $dataProvider yii\data\ActiveDataProvider
+ * @var $fileName string
  * @var $exportType string
  */
 
-use app\models\History;
-use app\models\Task;
-use app\widgets\Export\Export;
-use app\widgets\HistoryList\helpers\HistoryListHelper;
-
-$filename = 'history';
-$filename .= '-' . time();
-
-ini_set('max_execution_time', 0);
-ini_set('memory_limit', '2048M');
-?>
-
-<?= Export::widget([
+echo Export::widget([
+    'exportType' => $exportType,
+    'batchSize' => 2000,
+    'filename' => $fileName,
     'dataProvider' => $dataProvider,
     'columns' => [
         [
@@ -29,30 +23,25 @@ ini_set('memory_limit', '2048M');
         ],
         [
             'label' => Yii::t('app', 'User'),
-            'value' => function (History $model) {
-                return isset($model->user) ? $model->user->username : Yii::t('app', 'System');
+            'value' => function (HistorySearch $model) {
+                // предпочитаю использовать колонки на основе yii\grid\DataColumn, но данный виджет их не поддерживает
+                return $model->user->username ?? Yii::t('app', 'System');
             }
         ],
         [
-            'label' => Yii::t('app', 'Type'),
-            'value' => function (History $model) {
-                return $model->object;
-            }
+            'label' => Yii::t('app', 'Type'), // $model->getAttributeLabel('object') ?
+            'attribute' => 'object'
         ],
         [
             'label' => Yii::t('app', 'Event'),
-            'value' => function (History $model) {
-                return $model->eventText;
-            }
+            'attribute' => 'eventText'
         ],
         [
             'label' => Yii::t('app', 'Message'),
-            'value' => function (History $model) {
-                return strip_tags(HistoryListHelper::getBodyByModel($model));
+            'value' => function (HistorySearch $model) {
+                // всесто strip_tags лучше использовать свой formatter на основе \yii\i18n\Formatter с методом asStripTags
+                return strip_tags($model->eventText());
             }
         ]
     ],
-    'exportType' => $exportType,
-    'batchSize' => 2000,
-    'filename' => $filename
 ]);

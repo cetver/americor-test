@@ -3,36 +3,40 @@
 namespace app\controllers;
 
 use app\models\search\HistorySearch;
-use yii\filters\AccessControl;
+use app\services\Url;
+use kartik\export\ExportMenu;
 use yii\web\Controller;
-use yii\filters\VerbFilter;
+use yii\web\ErrorAction;
+use yii\web\Request;
 
 class SiteController extends Controller
 {
     /**
-     * {@inheritdoc}
+     * @var HistorySearch
      */
-    public function behaviors()
+    private $historySearch;
+    /**
+     * @var Request
+     */
+    private $request;
+    /**
+     * @var Url
+     */
+    private $urlService;
+
+    public function __construct(
+        $id,
+        $module,
+        HistorySearch $historySearch,
+        Request $request,
+        Url $urlService,
+        $config = []
+    )
     {
-        return [
-            'access' => [
-                'class' => AccessControl::className(),
-                'only' => ['logout'],
-                'rules' => [
-                    [
-                        'actions' => ['logout'],
-                        'allow' => true,
-                        'roles' => ['@'],
-                    ],
-                ],
-            ],
-            'verbs' => [
-                'class' => VerbFilter::className(),
-                'actions' => [
-                    'logout' => ['post'],
-                ],
-            ],
-        ];
+        $this->historySearch = $historySearch;
+        $this->request = $request;
+        $this->urlService = $urlService;
+        parent::__construct($id, $module, $config);
     }
 
     /**
@@ -42,11 +46,7 @@ class SiteController extends Controller
     {
         return [
             'error' => [
-                'class' => 'yii\web\ErrorAction',
-            ],
-            'captcha' => [
-                'class' => 'yii\captcha\CaptchaAction',
-                'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
+                'class' => ErrorAction::class,
             ],
         ];
     }
@@ -58,23 +58,34 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        return $this->render('index');
+        $dataProvider = $this->historySearch->search($this->request->queryParams);
+        $exportRoute = $this->urlService->mergedRoute('site/export', [
+            'exportType' => ExportMenu::FORMAT_CSV
+        ]);
+
+        return $this->render('index', compact(
+            'dataProvider',
+            'exportRoute'
+        ));
     }
 
-
     /**
-     * @param integer $customerId
      * @param string $exportType
+     *
      * @return string
      */
     public function actionExport($exportType)
     {
-        $model = new HistorySearch();
+        ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '2048M');
 
-        return $this->render('export', [
-            'dataProvider' => $model->search(\Yii::$app->request->queryParams),
-            'exportType' => $exportType,
-            'model' => $model
-        ]);
+        $dataProvider = $this->historySearch->search($this->request->queryParams);
+        $fileName = 'History-Report-' . date('d-M-Y H-i-s');
+
+        return $this->render('export', compact(
+            'dataProvider',
+            'fileName',
+            'exportType'
+        ));
     }
 }

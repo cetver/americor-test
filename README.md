@@ -1,3 +1,21 @@
+# Установка
+
+```bash
+git clone https://github.com/cetver/americor-test -- <project-dir>
+cd <project-dir>
+composer install
+```
+отредактировать [https://github.com/cetver/americor-test/blob/master/config/db.php](https://github.com/cetver/americor-test/blob/master/config/db.php)
+
+```nashorn js
+./yii migrate --interactive=0
+./yii serve
+```
+
+# Использование
+[http://localhost:8080/](http://localhost:8080/)
+
+
 <p align="center">
     <h1 align="center">Тестовое задание компании Americor <br> на должность Yii разработчика.</h1>
     <br>
